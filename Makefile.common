@@ -30,15 +30,9 @@ endif
 C.Flags += -std=gnu89
 
 CL.Flags += -D__OPENCL_VERSION__=110
-
-ifeq ($(ENABLE_EXT_STP),1)
-  LD.Flags += -L$(STP_ROOT)/lib
-  CXX.Flags += -I$(STP_ROOT)/include
-else
-  LD.Flags += -L$(PROJ_SRC_ROOT)/stp/lib
-  CXX.Flags += -I$(PROJ_SRC_ROOT)/stp/include
-endif
-CXX.Flags += -DKLEE_SRC_DIR=\"$(PROJ_SRC_ROOT)\" -DKLEE_DIR=\"$(PROJ_OBJ_ROOT)\"
+LD.Flags += -L$(STP_ROOT)/lib
+CXX.Flags += -I$(STP_ROOT)/include
+CXX.Flags += -DKLEE_SRC_DIR=\"$(PROJ_SRC_ROOT)\" -DKLEE_DIR=\"$(PROJ_OBJ_ROOT)\" -DKLEE_LIB_DIR=\"$(PROJ_libdir)\"
 CXX.Flags += -DLLVM_PREFIX=\"$(LLVM_OBJ_ROOT)/$(LLVM_BUILD_MODE)\"
 
 # For STP.

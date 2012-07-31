@@ -12,17 +12,12 @@ TOOLNAME = klee
 
 include $(LEVEL)/Makefile.config
 
-STP_LIBS := stp_c_interface.a stp_AST.a stp_bitvec.a stp_constantbv.a stp_sat.a \
-	stp_simplifier.a
 USEDLIBS = kleeCore.a kleeModule.a kleaverSolver.a kleaverExpr.a kleeSupport.a kleeBasic.a
 
 ifeq ($(ENABLE_OPENCL),1)
   LLVMLIBS = clangFrontend.a clangSerialization.a clangDriver.a clangCodeGen.a clangParse.a clangSema.a clangIndex.a clangAnalysis.a clangRewrite.a clangAST.a clangLex.a clangBasic.a
 endif
 
-ifeq ($(ENABLE_EXT_STP),0)
-  USEDLIBS += $(STP_LIBS)
-endif
 LINK_COMPONENTS = jit bitreader bitwriter ipo linker engine asmparser
 ifeq ($(LLVM_VERSION_MAJOR),3)
   LINK_COMPONENTS += instrumentation
@@ -30,6 +25,4 @@ endif
 
 include $(LEVEL)/Makefile.common
 
-ifeq ($(ENABLE_EXT_STP),1)
-  LIBS += -lstp
-endif
+LIBS += -lstp
