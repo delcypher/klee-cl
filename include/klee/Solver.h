@@ -222,6 +222,10 @@ namespace klee {
   /// involve FP comparisons.
   Solver *createFPRewritingSolver(Solver *s);
 
+  /// createSMTLIBLoggingSolver - Create a solver which will forward all queries
+  /// after writing them to the given path in .smt2 format.
+  Solver *createSMTLIBLoggingSolver(Solver *s, std::string path);
+
   /// createDummySolver - Create a dummy solver implementation which always
   /// fails.
   Solver *createDummySolver();
