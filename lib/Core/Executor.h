@@ -528,7 +528,7 @@ public:
 
   virtual void getConstraintLog(const ExecutionState &state,
                                 std::string &res,
-                                bool asCVC = false);
+                                Interpreter::LogType logFormat = Interpreter::STP);
 
   virtual bool getSymbolicSolution(const ExecutionState &state, 
                                    std::vector< 

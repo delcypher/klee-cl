@@ -69,6 +69,9 @@ cl::opt<bool> WriteCVCs("write-cvcs", cl::desc(
 cl::opt<bool> WritePCs("write-pcs", cl::desc(
 		"Write .pc files for each test case"));
 
+cl::opt<bool> WriteSMT2s("write-smt2s", cl::desc(
+    "Write .smt2 (SMT-LIBv2) files for each test case"));
+   
 cl::opt<bool> WriteCov("write-cov", cl::desc(
 		"Write coverage information for each test case"));
 
@@ -294,7 +297,7 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 
 		if (errorMessage || WritePCs) {
 			std::string constraints;
-			m_interpreter->getConstraintLog(state, constraints);
+			m_interpreter->getConstraintLog(state, constraints, Interpreter::KQUERY);
 			std::ostream *f = openTestFile("pc", id);
 			if(f) {
 			  *f << constraints;
@@ -306,7 +309,7 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 
 		if (WriteCVCs) {
 			std::string constraints;
-			m_interpreter->getConstraintLog(state, constraints, true);
+			m_interpreter->getConstraintLog(state, constraints, Interpreter::STP);
 			std::ostream *f = openTestFile("cvc", id);
 			if(f) {
 			  *f << constraints;
@@ -315,6 +318,15 @@ void KleeHandler::processTestCase(const ExecutionState &state,
 			  klee_warning("unable to write output test case");
 			}
 		}
+
+    if (WriteSMT2s) {
+       std::string constraints;
+        m_interpreter->getConstraintLog(state, constraints, Interpreter::SMTLIB2);
+        std::ostream *f = openTestFile("smt2", id);
+        *f << constraints;
+        delete f;
+    }
+
 
 		if (m_symPathWriter) {
 			std::vector<unsigned char> symbolicBranches;
