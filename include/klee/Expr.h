@@ -395,8 +395,12 @@ public:
 
   /// getZExtValue - Return the constant value for a limited number of bits.
   ///
-  /// This routine should be used in situations where the width of the constant
-  /// is known to be limited to a certain number of bits.
+  ///\param bits - optional parameter that can be used to check that the
+  ///number of bits used by this constant is <= to the parameter
+  ///value. This is useful for checking that type casts won't truncate
+  ///useful bits.
+  ///
+  /// Example: unit8_t byte= (unit8_t) constant->getZExtValue(8);
   uint64_t getZExtValue(unsigned bits = 64) const {
     assert(getWidth() <= bits && "Value may be out of range!");
     return value.getZExtValue();
