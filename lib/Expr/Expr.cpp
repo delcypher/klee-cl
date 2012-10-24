@@ -430,13 +430,14 @@ llvm::APFloat ConstantExpr::getAPFloatValue(const llvm::fltSemantics &sem) const
   return getAPFloatValue(&sem == &APFloat::IEEEquad);
 }
 
-void ConstantExpr::toString(std::string &Res) const {
+void ConstantExpr::toString(std::string &Res, unsigned radix) const {
   if (IsFloat) {
+    assert( radix==10 && "Use of non decimal radix for float not supported");
     llvm::SmallString<40> S;
     getAPFloatValue().toString(S);
     Res = S.str();
   } else
-    Res = value.toString(10, false);
+    Res = value.toString(radix, false);
 }
 
 ref<ConstantExpr> ConstantExpr::Concat(const ref<ConstantExpr> &RHS) {
