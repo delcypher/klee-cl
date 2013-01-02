@@ -172,6 +172,15 @@ namespace {
   UseFPRewriter("use-fp-rewriter",
                 cl::init(false));
 
+  // FIXME: Command line argument duplicated in main.cpp of Kleaver
+  cl::opt<int>
+  MinQueryTimeToLog("min-query-time-to-log",
+                    cl::init(0),
+                    cl::value_desc("milliseconds"),
+                    cl::desc("Set time threshold (in ms) for queries logged in files. "
+                             "Only queries longer than threshold will be logged. (default=0). "
+                             "Set this param to a negative value to log timeouts only."));
+   
   cl::opt<bool>
   NoExternals("no-externals", 
            cl::desc("Do not allow external functin calls"));
@@ -316,7 +325,8 @@ Solver *constructSolverChain(STPSolver *stpSolver,
   if (optionIsSet(queryLoggingOptions,SOLVER_PC))
   {
     solver = createPCLoggingSolver(solver, 
-                                   baseSolverQueryPCLogPath);
+                                   baseSolverQueryPCLogPath,
+		                   MinQueryTimeToLog);
     klee_message("Logging queries that reach solver in .pc format to %s",baseSolverQueryPCLogPath.c_str());
   }
 
@@ -347,7 +357,8 @@ Solver *constructSolverChain(STPSolver *stpSolver,
   if (optionIsSet(queryLoggingOptions,ALL_PC))
   {
     solver = createPCLoggingSolver(solver, 
-                                   queryPCLogPath);
+                                   queryPCLogPath,
+                                   MinQueryTimeToLog);
     klee_message("Logging all queries in .pc format to %s",queryPCLogPath.c_str());
   }
   

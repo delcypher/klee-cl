@@ -57,6 +57,8 @@ public:
                             const std::vector<const Array*> &objects,
                             std::vector< std::vector<unsigned char> > &values,
                             bool &hasSolution);
+
+  virtual bool hasTimeoutOccurred() { return solver->impl->hasTimeoutOccurred(); }
 };
 
 enum MinMax { mmUnknown, mmMin, mmMax };

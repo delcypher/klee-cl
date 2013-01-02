@@ -216,7 +216,8 @@ namespace klee {
   
   /// createPCLoggingSolver - Create a solver which will forward all queries
   /// after writing them to the given path in .pc format.
-  Solver *createPCLoggingSolver(Solver *s, std::string path);
+  Solver *createPCLoggingSolver(Solver *s, std::string path,
+                                int minQueryTimeToLog);
 
   /// createFPRewritingSolver - Create a solver which rewrites queries that
   /// involve FP comparisons.
@@ -229,6 +230,13 @@ namespace klee {
   /// createDummySolver - Create a dummy solver implementation which always
   /// fails.
   Solver *createDummySolver();
+  
+  enum SolverRunStatus { SOLVER_RUN_STATUS_SUCCESS, 
+                         SOLVER_RUN_STATUS_TIMEOUT,
+                         SOLVER_RUN_STATUS_FORK_FAILED,
+                         SOLVER_RUN_STATUS_INTERRUPTED,
+                         SOLVER_RUN_STATUS_UNEXPECTED_EXIT_CODE,
+                         SOLVER_RUN_STATUS_WAITPID_FAILED };
 }
 
 #endif
