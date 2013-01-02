@@ -58,7 +58,10 @@ public:
                             std::vector< std::vector<unsigned char> > &values,
                             bool &hasSolution);
 
-  virtual bool hasTimeoutOccurred() { return solver->impl->hasTimeoutOccurred(); }
+
+  virtual SolverImpl::SolverRunStatus getOperationStatusCode() {
+      return solver->impl->getOperationStatusCode();
+  }
 };
 
 enum MinMax { mmUnknown, mmMin, mmMax };

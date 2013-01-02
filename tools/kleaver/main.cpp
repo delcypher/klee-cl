@@ -8,6 +8,7 @@
 #include "klee/Expr.h"
 #include "klee/ExprBuilder.h"
 #include "klee/Solver.h"
+#include "klee/SolverImpl.h"
 #include "klee/Statistics.h"
 #include "klee/util/ExprPPrinter.h"
 #include "klee/util/ExprVisitor.h"
@@ -87,7 +88,7 @@ namespace {
   UseFastCexSolver("use-fast-cex-solver",
 		   cl::init(false));
   
-  // FIXME: Command line argument duplicated in Executor.cpp of Klee. Different
+  // FIXME: Command line argument modified in Executor.cpp of Klee. Different
   // output file name used.
   cl::opt<bool>
   UseSTPQueryPCLog("use-stp-query-pc-log",
@@ -214,7 +215,9 @@ static bool EvaluateInputAST(const char *Filename,
                           result)) {
           std::cout << (result ? "VALID" : "INVALID");
         } else {
-          std::cout << "FAIL";
+          std::cout << "FAIL (reason: " 
+                    << SolverImpl::getOperationStatusString(S->impl->getOperationStatusCode())
+                    << ")";
         }
       } else if (!QC->Values.empty()) {
         assert(QC->Objects.empty() && 
@@ -230,7 +233,9 @@ static bool EvaluateInputAST(const char *Filename,
           std::cout << "INVALID\n";
           std::cout << "\tExpr 0:\t" << result;
         } else {
-          std::cout << "FAIL";
+          std::cout << "FAIL (reason: " 
+                    << SolverImpl::getOperationStatusString(S->impl->getOperationStatusCode())
+                    << ")";
         }
       } else {
         std::vector< std::vector<unsigned char> > result;
@@ -254,7 +259,9 @@ static bool EvaluateInputAST(const char *Filename,
               std::cout << "\n";
           }
         } else {
-          std::cout << "FAIL";
+          std::cout << "FAIL (reason: " 
+                    << SolverImpl::getOperationStatusString(S->impl->getOperationStatusCode())
+                    << ")";
         }
       }
 
