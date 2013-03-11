@@ -35,3 +35,7 @@ vgcore.*
 
 *.ll
 *.bc
+
+#Eclipse CDT files
+.cproject
+.project
