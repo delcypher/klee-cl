@@ -1,0 +1,17 @@
+Index: utils/llvm-build/llvm-build
+===================================================================
+--- a/utils/llvm-build/llvm-build	(revision 146372)
++++ b/utils/llvm-build/llvm-build	(working copy)
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python
++#!/usr/bin/env python2.7
+ 
+ import llvmbuild
+ 
+Index: utils/llvm-build/llvmbuild/__init__.py
+===================================================================
+--- a/utils/llvm-build/llvmbuild/__init__.py	(revision 146372)
++++ b/utils/llvm-build/llvmbuild/__init__.py	(working copy)
+@@ -1 +1 @@
+-from main import main
++from llvmbuild.main import main
