@@ -1233,12 +1233,7 @@ static ref<Expr> ShlExpr_create(const ref<Expr> &l, const ref<Expr> &r) {
     if (crv == 0)
       return l;
     else if (crv >= l->getWidth())
-      /*  FIXME: The commented out optimisation is sound but the
-       *  it seems to cause solver problems (i.e. unit test failures).
-       *  Use unoptimised form for now but this should really be fixed properly at some point.
-       */
-      //return ConstantExpr::create(0, l->getWidth());
-      return ShlExpr::alloc(l,r);
+      return ConstantExpr::create(0, l->getWidth());
     else
       return ConcatExpr::create(ExtractExpr::create(l, 0, l->getWidth() - crv), ConstantExpr::create(0, crv));
   } else if (l->getWidth() == Expr::Bool) { // l & !r
