@@ -423,6 +423,7 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
   pm.add(new RaiseAsmPass());
   if (opts.CheckDivZero) pm.add(new DivCheckPass());
   pm.add(createLowerAtomicPass());          // Lower llvm.atomic.*
+  if (opts.CheckOvershift) pm.add(new OvershiftCheckPass());
   if (InstrumentSIMD)
     pm.add(new SIMDInstrumentationPass());
   // FIXME: This false here is to work around a bug in
@@ -474,6 +475,8 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
    */
   if (opts.CheckDivZero)
     inlineChecks(module, "klee_div_zero_check");
+  if (opts.CheckOvershift)
+    inlineChecks(module, "klee_overshift_check");
 
 
   // Needs to happen after linking (since ctors/dtors can be modified)

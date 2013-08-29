@@ -1399,7 +1399,7 @@ void SpecialFunctionHandler::handleOclCompile(ExecutionState &state,
   Path.appendComponent("libkleeRuntimeCLKernel.bca");
   Mod = klee::linkWithLibrary(Mod, Path.c_str());
 
-  unsigned moduleId = executor.addModule(Mod, Interpreter::ModuleOptions(LibraryDir.c_str(), false, true));
+  unsigned moduleId = executor.addModule(Mod, Interpreter::ModuleOptions(LibraryDir.c_str(), false, true,true));
   executor.initializeGlobals(state, moduleId);
   executor.bindModuleConstants(moduleId);
 

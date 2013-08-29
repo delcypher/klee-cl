@@ -80,6 +80,12 @@ namespace {
                cl::desc("Inject checks for division-by-zero"),
                cl::init(true));
 
+  cl::opt<bool>
+  CheckOvershift("check-overshift",
+                 cl::desc("Inject checks for overshift"),
+                 cl::init(true));
+
+
   // this is a fake entry, its automagically handled
   cl::list<std::string>
   ReadArgsFilesFake("read-args", 
@@ -341,7 +347,8 @@ int main(int argc, char **argv, char **envp) {
 
   klee::Interpreter::ModuleOptions mOpts(libraryPath.c_str(),
     /*Optimize=*/OptimizeModule,
-    /*CheckDivZero=*/CheckDivZero);
+    /*CheckDivZero=*/CheckDivZero,
+    /*CheckOvershift=*/CheckOvershift);
 
   Interpreter::InterpreterOptions IOpts;
   IOpts.MakeConcreteSymbolic = MakeConcreteSymbolic;
