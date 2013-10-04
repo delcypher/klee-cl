@@ -3327,6 +3327,15 @@ void Executor::resolveExact(ExecutionState &state,
        it != ie; ++it) {
     ref<Expr> inBounds = EqExpr::create(p, it->first->getBaseExpr());
     
+    /*
+     *  Assume branches.first is path where inBounds is true
+     *  Assume branches.second is path where inBound is false
+     *  Is this correct with the randomised swapping in fork() ?
+     *
+     *  Notice that that "unbound" is being reused in the loop.
+     *  Unbound will accumulate a constraint (p does not point
+     *  to a particular MemoryObject) on every iteration.
+     */
     StatePair branches = fork(*unbound, inBounds, true, KLEE_FORK_INTERNAL);
     
     if (branches.first)
@@ -3334,9 +3343,18 @@ void Executor::resolveExact(ExecutionState &state,
 
     unbound = branches.second;
     if (!unbound) // Fork failure
-      break;
+    {
+        // A state does not exist where inBounds is false.
+        // No need to search for more states where p could
+        // point to other MemoryObjects.
+        break;
+    }
   }
 
+  // If we've finished looping through all memory objects
+  // and a state exists where p does not point to any of those
+  // objects then the pointer can point to an invalid point in
+  // memory.
   if (unbound) {
     terminateStateOnError(*unbound,
                           "memory error: invalid pointer: " + name,

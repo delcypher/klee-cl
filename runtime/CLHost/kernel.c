@@ -196,6 +196,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                               cl_uint num_events_in_wait_list,
                               const cl_event *event_wait_list,
                               cl_event *event) {
+  // Why 64? Usually have work_dim <= 3
   size_t num_groups[64], ids[64], local_ids[64], global_ids[64], workgroup_count,
          work_item_count;
   cl_uint i, last_id;
@@ -230,6 +231,11 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
         return CL_INVALID_WORK_GROUP_SIZE;
       num_groups[i] = global_work_size[i] / local_work_size[i];
     } else {
+      /* NULL was passed so runtime is being asked to choose
+       * our own division of work items into work groups.
+       * We choose to simply only have 1 work group and have
+       * all work items in the same work group.
+       */
       num_groups[i] = 1;
     }
   }
