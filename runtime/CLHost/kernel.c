@@ -109,7 +109,7 @@ typedef struct _cl_intern_work_item_params {
   uintptr_t args;
   cl_uint work_dim;
   unsigned wgid;
-  uint64_t wg_wlist, global_wlist;
+  uint64_t wg_wlist, global_wlist; // FIXME: What are these? Why don't you comment your code!!!
   unsigned global_size;
   size_t ids[64];
 } cl_intern_work_item_params;
@@ -197,12 +197,18 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                               const cl_event *event_wait_list,
                               cl_event *event) {
   // Why 64? Usually have work_dim <= 3
-  size_t num_groups[64], ids[64], local_ids[64], global_ids[64], workgroup_count,
-         work_item_count;
-  cl_uint i, last_id;
+  size_t num_groups[64], // # of work groups per dim
+         ids[64], // ??
+         local_ids[64], //?
+         global_ids[64], // global offsets per dim
+         workgroup_count, // Total # of work groups
+         work_item_count; // Total # of work items
+  cl_uint i,
+          last_id; // Used in do-while termination, seems useless though as it never needs to be read.
   uintptr_t argList;
-  unsigned *workgroups;
-  uint64_t *wg_wlists, global_wlist;
+  unsigned *workgroups; // Array of workgroup ids?? (address space id)
+  uint64_t *wg_wlists, // Array of work group ids?? different from above???
+           global_wlist;
   pthread_t *work_items, *cur_work_item;
   cl_event new_event;
 
@@ -241,34 +247,46 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   }
 
   memset(ids, 0, work_dim*sizeof(size_t));
+
+  // Why set this? It is not read!
   if (global_work_offset)
     memcpy(global_ids, global_work_offset, work_dim*sizeof(size_t));
   else
     memset(global_ids, 0, work_dim*sizeof(size_t));
+
+  // Why set this? It is not read!
   memset(local_ids, 0, work_dim*sizeof(size_t));
+
   last_id = work_dim+1;
 
+  // Calculate total # of work items
   work_item_count = 1;
   for (i = 0; i < work_dim; ++i)
     work_item_count *= global_work_size[i];
 
   cur_work_item = work_items = malloc(sizeof(pthread_t) * work_item_count);
 
+  // Calculate total # of work groups
   workgroup_count = 1;
   if (local_work_size)
     for (i = 0; i < work_dim; ++i)
       workgroup_count *= num_groups[i];
 
+  // Why would wgBarrierSize be a NULL pointer?
   if (kernel->program->wgBarrierSize)
     *kernel->program->wgBarrierSize = work_item_count/workgroup_count;
 
   workgroups = malloc(sizeof(unsigned) * workgroup_count);
+  // Setup address space for each work group
   for (i = 0; i < workgroup_count; ++i)
     workgroups[i] = klee_create_work_group();
 
+  // Get a unique ID for each work group
   wg_wlists = malloc(sizeof(uint64_t) * workgroup_count);
   for (i = 0; i < workgroup_count; ++i)
     wg_wlists[i] = klee_get_wlist();
+
+  // Get a unique ID for ??
   global_wlist = klee_get_wlist();
 
   {
@@ -276,6 +294,9 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
     unsigned argCount = klee_ocl_get_arg_count(kernel->function);
     unsigned arg;
 
+    /* Set up arguments to pass to kernel.
+     * The use of address_space attribute needs explaining!
+     */
     for (arg = 0; arg < argCount; ++arg) {
       switch (klee_ocl_get_arg_type(kernel->function, arg)) {
 #define X(TYPE, FIELD) { \
@@ -336,10 +357,19 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
       for (i = 0; i < work_dim; ++i)
         wgid = wgid*num_groups[i] + (ids[i] / local_work_size[i]);
 
-    invoke_work_item(kernel, argList, work_dim, workgroups[wgid],
-        wg_wlists[wgid], global_wlist, work_item_count, ids, cur_work_item++);
+    invoke_work_item(kernel,
+                     argList,
+                     work_dim,
+                     workgroups[wgid],
+                     wg_wlists[wgid], // What is this??
+                     global_wlist, // What is this??
+                     work_item_count,
+                     ids,
+                     cur_work_item++
+                    );
   } while ((last_id = increment_id_list(work_dim, ids, global_work_size)));
 
+  // Is this a memory leak if user doesn't want an event object?
   new_event = kcl_create_pthread_event(work_items, work_item_count);
   kcl_add_event_to_queue(command_queue, new_event);
 

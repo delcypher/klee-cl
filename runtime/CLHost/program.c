@@ -52,6 +52,9 @@ cl_int clBuildProgram(cl_program program,
   result = program->module ? CL_SUCCESS : CL_BUILD_PROGRAM_FAILURE;
 
   if (program->module) {
+    /* These module globals exist in CLKernel runtime library.
+     * The used of the address_space() attribute needs explaining!
+     */
     program->workDim = (unsigned *) klee_lookup_module_global(program->module, "_work_dim");
     program->globalWorkOffset = (size_t *) klee_lookup_module_global(program->module, "_global_work_offset");
     program->globalWorkSize = (size_t *) klee_lookup_module_global(program->module, "_global_work_size");
