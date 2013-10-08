@@ -11,7 +11,7 @@ function die() {
 
 function usage() {
   echo "USAGE:"
-  echo "$0 <path> [ -j N | --jobs N ] [ -d | --debug ]"
+  echo "$0 [ -j N | --jobs N ] [ -d | --debug ] <path>"
   echo "$0 -h|--help"
   echo ""
   echo "This script fetches KLEE-CL and its dependencies and compiles everything."
@@ -101,7 +101,7 @@ patch -p1 -i "${KLEE_CL_ROOT}/src/patches/llvm-build-python.patch"  || die
 cd "${LLVM_ROOT}/src/tools/clang" || die
 patch -p1 -i "${KLEE_CL_ROOT}/src/patches/clang-Define-the-KLEE-OpenCL-target.patch" || die
 
-#Get compilers-rt
+#Get compiler-rt
 cd "${LLVM_ROOT}/src/projects" || die
 svn co -r ${LLVM_CLANG_REVISION} http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt || die
 
