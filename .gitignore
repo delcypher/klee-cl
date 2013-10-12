@@ -39,3 +39,9 @@ vgcore.*
 #Eclipse CDT files
 .cproject
 .project
+
+# Vim swap files
+.*.swp
+
+# Ctags file
+tags
