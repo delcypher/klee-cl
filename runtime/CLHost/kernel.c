@@ -199,8 +199,6 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   // Why 64? Usually have work_dim <= 3
   size_t num_groups[64], // # of work groups per dim
          ids[64], // These are the ids used to identify a work-item
-         local_ids[64], //FIXME: Not used
-         global_ids[64], //FIXME: Not used
          workgroup_count, // Total # of work groups
          work_item_count; // Total # of work items
   cl_uint i,
@@ -247,15 +245,6 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   }
 
   memset(ids, 0, work_dim*sizeof(size_t));
-
-  // Why set this? It is not read!
-  if (global_work_offset)
-    memcpy(global_ids, global_work_offset, work_dim*sizeof(size_t));
-  else
-    memset(global_ids, 0, work_dim*sizeof(size_t));
-
-  // Why set this? It is not read!
-  memset(local_ids, 0, work_dim*sizeof(size_t));
 
   last_id = work_dim+1; // Is this needed?
 
