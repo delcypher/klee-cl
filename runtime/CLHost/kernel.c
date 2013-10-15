@@ -109,7 +109,7 @@ typedef struct _cl_intern_work_item_params {
   uintptr_t args;
   cl_uint work_dim;
   unsigned wgid;
-  uint64_t wg_wlist, global_wlist; // FIXME: What are these? Why don't you comment your code!!!
+  uint64_t wg_wlist, global_wlist; // Integer that is used as key to ExecutionState::waitingLists map
   unsigned global_size;
   size_t ids[64];
 } cl_intern_work_item_params;
@@ -198,16 +198,16 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                               cl_event *event) {
   // Why 64? Usually have work_dim <= 3
   size_t num_groups[64], // # of work groups per dim
-         ids[64], // ??
-         local_ids[64], //?
-         global_ids[64], // global offsets per dim
+         ids[64], // These are the ids used to identify a work-item
+         local_ids[64], //FIXME: Not used
+         global_ids[64], //FIXME: Not used
          workgroup_count, // Total # of work groups
          work_item_count; // Total # of work items
   cl_uint i,
           last_id; // Used in do-while termination, seems useless though as it never needs to be read.
   uintptr_t argList;
-  unsigned *workgroups; // Array of workgroup ids?? (address space id)
-  uint64_t *wg_wlists, // Array of work group ids?? different from above???
+  unsigned *workgroups; // Array of that maps workgroup number to workgroup ids ( correspondance with workgroup's address space )
+  uint64_t *wg_wlists, // Array of integers that map workgroup number to waitList key ( see ExecutiontState::waitingLists )
            global_wlist;
   pthread_t *work_items, *cur_work_item;
   cl_event new_event;
@@ -257,7 +257,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   // Why set this? It is not read!
   memset(local_ids, 0, work_dim*sizeof(size_t));
 
-  last_id = work_dim+1;
+  last_id = work_dim+1; // Is this needed?
 
   // Calculate total # of work items
   work_item_count = 1;
@@ -274,7 +274,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
 
   // Why would wgBarrierSize be a NULL pointer?
   if (kernel->program->wgBarrierSize)
-    *kernel->program->wgBarrierSize = work_item_count/workgroup_count;
+    *kernel->program->wgBarrierSize = work_item_count/workgroup_count; // # of work items in a work group
 
   workgroups = malloc(sizeof(unsigned) * workgroup_count);
   // Setup address space for each work group
@@ -361,8 +361,8 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                      argList,
                      work_dim,
                      workgroups[wgid],
-                     wg_wlists[wgid], // What is this??
-                     global_wlist, // What is this??
+                     wg_wlists[wgid],
+                     global_wlist,
                      work_item_count,
                      ids,
                      cur_work_item++
