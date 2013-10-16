@@ -1074,7 +1074,12 @@ void SpecialFunctionHandler::handleThreadBarrier(ExecutionState &state,
   bool isGlobal = cast<ConstantExpr>(isGlobalX)->getZExtValue();
 
   if (state.barrierThread(barrierId, threadCount, addrSpace, isGlobal))
+  {
+    /* There are other threads waiting so we should
+     * try and schedule another thread.
+     */
     executor.schedule(state, false);
+  }
 }
 
 void SpecialFunctionHandler::handleThreadCreate(ExecutionState &state,

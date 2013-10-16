@@ -133,6 +133,10 @@ static void *work_item_thread(void *arg) {
   cl_kernel kern = params->kernel;
   cl_program prog = kern->program;
 
+  // prog->ids is the pointer to module's _ids global
+  // It should be set so now we do the copy. This ID
+  // is unique to thread so we use a special memcpy
+  // for the work item's private address space.
   if (prog->ids) {
     memcpy40(prog->ids, params->ids, sizeof(size_t)*params->work_dim);
   }
@@ -209,6 +213,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
            global_wlist;
   pthread_t *work_items, *cur_work_item;
   cl_event new_event;
+  size_t symbolic_thread_count=2;
 
 #ifdef DUMP_NDRANGE
   puts("clEnqueueNDRangeKernel:");
@@ -223,6 +228,11 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
 
   if (!global_work_size)
     return CL_INVALID_GLOBAL_WORK_SIZE;
+
+  // Hack so we only have a single work group.
+  // Needed so we don't need to worry about multiple shared work spaces.
+  local_work_size = NULL;
+  klee_warning("FIXME:Ignoring local_work_size, there will be only one workgroup");
 
   for (i = 0; i < work_dim; ++i) {
     if (global_work_size[i] == 0)
@@ -261,9 +271,17 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
     for (i = 0; i < work_dim; ++i)
       workgroup_count *= num_groups[i];
 
-  // Why would wgBarrierSize be a NULL pointer?
+  // Pointer setup to module global _wg_barrier_size (see CLKernel/sync.cl)
   if (kernel->program->wgBarrierSize)
-    *kernel->program->wgBarrierSize = work_item_count/workgroup_count; // # of work items in a work group
+  {
+    //*kernel->program->wgBarrierSize = work_item_count/workgroup_count; // # of work items in a work group
+    /* This is a hack. If we use the number of threads in a work group then
+     * this will cause a hang because we probably won't be running all of them.
+     * Instead we use the number of actually running threads used to model
+     * the threads.
+     */
+    *kernel->program->wgBarrierSize = symbolic_thread_count;
+  }
 
   workgroups = malloc(sizeof(unsigned) * workgroup_count);
   // Setup address space for each work group
@@ -316,10 +334,12 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   }
 
   if (kernel->program->workDim) {
+    // workDim is pointer to kernel's module global _work_dim
     *kernel->program->workDim = work_dim;
   }
 
   if (kernel->program->globalWorkOffset) {
+    // globalWorkOffset is a pointer to kernel's module global _global_work_offset
     if (global_work_offset)
       memcpy(kernel->program->globalWorkOffset, global_work_offset, work_dim*sizeof(size_t));
     else
@@ -327,13 +347,21 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   }
 
   if (kernel->program->globalWorkSize) {
+    // globalWorkSize is a pointer to kernel's module global _global_work_size
+
+    /* This is used in the kernel for things like get_global_size().
+     * So it is fine to set this to the number of threads we are modelling.
+     */
     memcpy(kernel->program->globalWorkSize, global_work_size, work_dim*sizeof(size_t));
   }
 
   if (kernel->program->numGroups) {
+    // numGroups is a pointer to kernel module's global _num_groups
     memcpy(kernel->program->numGroups, num_groups, work_dim*sizeof(size_t));
   }
 
+  char threadString[] = "threadX"; // Hacky way of setting a symbolic value's name.
+  size_t offset=0;
   do {
     /* Build up a one-dimensional work-group id for the work item.
      * Each iteration multiplies the current id by the number of
@@ -346,17 +374,44 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
       for (i = 0; i < work_dim; ++i)
         wgid = wgid*num_groups[i] + (ids[i] / local_work_size[i]);
 
+    // Create string for symbolic work-item ID ...hacky
+    size_t symID = offset / work_dim ;
+    klee_assert( symID < 10 );
+    threadString[ sizeof(threadString)/sizeof(char) -2 ] = '0' + symID;
+    //puts("Thread:");
+    //puts(threadString);
+    //puts("\n");
+
+    /* Hack symbolic thread IDs */
+    klee_make_symbolic(ids + offset, sizeof(size_t)*work_dim, threadString);
+
     invoke_work_item(kernel,
                      argList,
                      work_dim,
                      workgroups[wgid],
                      wg_wlists[wgid],
                      global_wlist,
-                     work_item_count,
+                     /*  Previously work_item_count. 
+                      * We only run "symbolic_thread_count" number of threads to model
+                      * "work_item_count" threads.
+                      *
+                      * This is a hack!
+                      * */ 
+                     symbolic_thread_count,
                      ids,
                      cur_work_item++
                     );
-  } while ((last_id = increment_id_list(work_dim, ids, global_work_size)));
+    
+    // Add assumptions that the created thread's ID is not equal to any previously
+    // created symbolic thread
+    // FIXME: To implement
+
+    offset+= work_dim;
+    klee_warning("Created symbolic work-item.");
+
+
+  } while ( --symbolic_thread_count > 0);
+  //} while ((last_id = increment_id_list(work_dim, ids, global_work_size)));
 
   // Is this a memory leak if user doesn't want an event object?
   new_event = kcl_create_pthread_event(work_items, work_item_count);
