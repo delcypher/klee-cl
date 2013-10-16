@@ -202,7 +202,6 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                               cl_event *event) {
   // Why 64? Usually have work_dim <= 3
   size_t num_groups[64], // # of work groups per dim
-         ids[64], // These are the ids used to identify a work-item
          workgroup_count, // Total # of work groups
          work_item_count; // Total # of work items
   cl_uint i,
@@ -214,6 +213,10 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   pthread_t *work_items, *cur_work_item;
   cl_event new_event;
   size_t symbolic_thread_count=2;
+  size_t* ids; // These are the ids used to identify a work-item
+  size_t** symbolicIDs; // Array of pointers to symbolic IDs
+
+
 
 #ifdef DUMP_NDRANGE
   puts("clEnqueueNDRangeKernel:");
@@ -254,7 +257,6 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
     }
   }
 
-  memset(ids, 0, work_dim*sizeof(size_t));
 
   last_id = work_dim+1; // Is this needed?
 
@@ -270,6 +272,21 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   if (local_work_size)
     for (i = 0; i < work_dim; ++i)
       workgroup_count *= num_groups[i];
+
+  // Setup up arrays for ids for symbolic threads
+  // FIXME: Memory needs to be free'ed? When is it safe to do it?
+  symbolicIDs = (size_t**) malloc(sizeof(size_t*) * symbolic_thread_count);
+  {
+    unsigned int symThread=0;
+    for (; symThread < symbolic_thread_count; ++symThread)
+    {
+      symbolicIDs[ symThread ] = malloc( sizeof(size_t) * work_dim );
+      klee_assert( symbolicIDs[ symThread ] != NULL );
+
+      // Probably not necessary, but I'm paranoid.
+      memset( symbolicIDs[symThread] , 0, sizeof(size_t) * work_dim );
+    }
+  }
 
   // Pointer setup to module global _wg_barrier_size (see CLKernel/sync.cl)
   if (kernel->program->wgBarrierSize)
@@ -361,7 +378,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
   }
 
   char threadString[] = "threadX"; // Hacky way of setting a symbolic value's name.
-  size_t offset=0;
+  size_t threadNum=0;
   do {
     /* Build up a one-dimensional work-group id for the work item.
      * Each iteration multiplies the current id by the number of
@@ -369,21 +386,20 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
      * and then adds the group id for that dimension (which is
      * guaranteed to be between 0 and num_groups-1).
      */
+
+    ids = symbolicIDs[threadNum];
+
     unsigned wgid = 0;
     if (local_work_size)
       for (i = 0; i < work_dim; ++i)
         wgid = wgid*num_groups[i] + (ids[i] / local_work_size[i]);
 
     // Create string for symbolic work-item ID ...hacky
-    size_t symID = offset / work_dim ;
-    klee_assert( symID < 10 );
-    threadString[ sizeof(threadString)/sizeof(char) -2 ] = '0' + symID;
-    //puts("Thread:");
-    //puts(threadString);
-    //puts("\n");
+    klee_assert( threadNum < 10 ); //FIXME: Support arbitrary number of symbolic threads
+    threadString[ sizeof(threadString)/sizeof(char) -2 ] = '0' + threadNum;
 
     /* Hack symbolic thread IDs */
-    klee_make_symbolic(ids + offset, sizeof(size_t)*work_dim, threadString);
+    klee_make_symbolic(ids, sizeof(size_t)*work_dim, threadString);
 
     invoke_work_item(kernel,
                      argList,
@@ -402,11 +418,15 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
                      cur_work_item++
                     );
     
+    puts("Created symbolic thread:");
+    puts(threadString);
+    puts("\n");
+    
     // Add assumptions that the created thread's ID is not equal to any previously
     // created symbolic thread
     // FIXME: To implement
 
-    offset+= work_dim;
+    ++threadNum;
     klee_warning("Created symbolic work-item.");
 
 
