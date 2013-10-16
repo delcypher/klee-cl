@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2.7
 
 import os, signal, popen2
 
@@ -15,6 +15,7 @@ def execCmd(pid, gdbCmd, opts):
            "--pid=%d " +
            "--eval-command=\"%s\" " +
            "--eval-command=detach")%(pid,gdbCmd)
+    print("Sending command: " + cmd)
     cout,cin = popen2.popen2(cmd)
     cin.close()
     return cout.read()
@@ -40,6 +41,10 @@ def main():
                   action='store_true', default=False)
     op.add_option('','--print-ticks', dest='printTicks',
                   action='store_true', default=False)
+    op.add_option('-p','--set-print-instr', action='store',
+                  choices=['true','false'], default=None,
+                  dest='setDebugPrintInstructions',
+                  help='Enable or disable printing of instructions in KLEE. Set to true or false')
     opts,args = op.parse_args()
 
     if len(args) != 1:
@@ -83,6 +88,9 @@ def main():
         os.kill(pid, signal.SIGINT)
     if opts.kill:    
         os.kill(pid, signal.SIGKILL)
+    if opts.setDebugPrintInstructions:
+        execCmd(pid, 'set DebugPrintInstructions.Value = ' +
+                opts.setDebugPrintInstructions, opts)
 
 if __name__=='__main__':
     main()
