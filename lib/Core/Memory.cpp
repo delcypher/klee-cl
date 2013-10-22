@@ -226,7 +226,8 @@ bool MemoryLog::logRead(ExecutionState *state, TimingSolver *solver, ref<Expr> o
   ref<Expr> wgidMismatch = NeExpr::create(oldWgid, wgidConst);
 
   ref<Expr> query = AndExpr::create(oldWrite,
-                               AndExpr::create(threadIdMismatch, wgidMismatch));
+                                    AndExpr::create(threadIdMismatch, wgidMismatch) // BUG: probably should be OR
+                                   );
 
   bool result;
   bool success = solver->mayBeTrue(*state, query, result);
@@ -334,7 +335,9 @@ bool MemoryLog::logWrite(ExecutionState *state, TimingSolver *solver, ref<Expr> 
   ref<Expr> query =
     OrExpr::create(OrExpr::create(oldManyRead, oldWgManyRead),
                    AndExpr::create(OrExpr::create(oldRead, oldWrite), 
-                              AndExpr::create(threadIdMismatch, wgidMismatch)));
+                                   AndExpr::create(threadIdMismatch, wgidMismatch) // BUG: Probably should be OR
+                                  )
+                  );
 
   bool result;
   bool success = solver->mayBeTrue(*state, query, result);
