@@ -219,6 +219,8 @@ extern "C" {
   /* Set the work group id for this thread to the given id. */
   void klee_set_work_group_id(unsigned wgid);
 
+  void klee_set_work_item_id(size_t* ids, size_t byteSzie, size_t nDim);
+
   //////////////////////////////////////////////////////////////////////////////
   // Thread Scheduling Management
   //////////////////////////////////////////////////////////////////////////////

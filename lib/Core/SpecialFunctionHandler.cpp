@@ -1,4 +1,5 @@
 /*******************************************************************************
+ * ref<Expr> dim = arguments[2];
  * Copyright (C) 2010 Dependable Systems Laboratory, EPFL
  *
  * This file is part of the Cloud9-specific extensions to the KLEE symbolic
@@ -55,6 +56,7 @@
 #include "llvm/Support/Path.h"
 #endif
 #include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/Debug.h"
 
 #ifdef HAVE_OPENCL
 #include "clang/Basic/Version.h"
@@ -216,6 +218,7 @@ HandlerInfo handlerInfo[] = {
   add("lrintf", handleFPToSIRound, true),
   add("llrint", handleFPToSIRound, true),
   add("llrintf", handleFPToSIRound, true),
+  add("klee_set_work_item_id", handleSetWorkItemID, false)
 
 #undef addDNR
 #undef add  
@@ -1642,3 +1645,72 @@ void SpecialFunctionHandler::handleFPToSIRound(ExecutionState &state,
                                         /*fromIsIEEE=*/false,
                                         /*roundNearest=*/true));
 }
+
+
+void SpecialFunctionHandler::handleSetWorkItemID(ExecutionState &state,
+                                        KInstruction *target,
+                                        std::vector<ref<Expr> > &arguments) {
+    // This is a hack so we can get access to the symbolic thread IDs
+    // and store them in the Thread class for later use for race checking.
+    assert( arguments.size() == 3 && "Incorrect number of args");
+    for(std::vector<ref<Expr> >::const_iterator i = arguments.begin(),
+                                                end = arguments.end();
+                                                i != end;
+                                                ++i)
+    {
+        assert( (*i)->getKind() == Expr::Constant && "Non constant argument passed");
+    }
+
+    ref<ConstantExpr> threadIdPtr = cast<ConstantExpr>(arguments[0]);
+    Expr::Width dataSize = 8*( cast<ConstantExpr>(arguments[1])->getZExtValue() );
+    assert( (dataSize == Expr::Int64) && "Passed in data size is incorrect");
+
+    size_t num_dim = cast<ConstantExpr>(arguments[2])->getZExtValue();
+    assert( num_dim > 0 && "Cannot have negative number of dimensions");
+    assert(num_dim < 64 && "Cannot support that many dimensions");
+
+    // FIXME: Use dbgs() with ref<Expr>
+    std::cerr << "threadid pointer:" << threadIdPtr << "\n";
+    std::cerr << "Size:" << dataSize << "\n";
+
+    std::cerr  << "Number of Dimensions: " << num_dim << "\n";
+
+    //executor.resolveExact(state, threadIdPtr, rl, "work-item-ids-pointer");
+
+    // Get the memory object for the symbolic IDs.
+    ObjectPair result;
+    bool success = state.addressSpace().resolveOne(threadIdPtr,
+                    result);
+    assert(success && "Could not find MO");
+
+    const MemoryObject* MO = result.first;
+    const ObjectState* OS = result.second;
+
+    /* It is not guaranteed we'll get the Memory object with the address we
+     * asked for (e.g we might of asked for an address into a struct but
+     * we'll get a MemoryObject representing the whole struct). So compute
+     * the offset in the Object state that we want.
+     */
+
+    uint64_t reqAddr = threadIdPtr->getZExtValue();
+    uint64_t givenAddr = MO->address;
+    if ( givenAddr > reqAddr)
+        assert(false && "Invalid MO");
+
+    dbgs() << "Have object:" << MO->name << "\n";
+    dbgs() << "With size:" << OS->size << "\n";
+
+    uint64_t offset = reqAddr - givenAddr;
+    ref<Expr> ids;
+    dbgs() << "Reading offset:" << offset << "\n";
+    ids = OS->read(offset, dataSize*num_dim, &state, executor.solver);
+
+    std::cerr << "Found :" << ids << "\n";
+    assert( !isa<ConstantExpr>(ids) && "Error: Found non symbolic.");
+
+    // Save the symbolic threadID
+    Thread& t = state.crtThread();
+    assert(t.getTid() != 0 && "Cannot use this function from main thread!");
+    t.setSymbolicThreadID(ids);
+}
+

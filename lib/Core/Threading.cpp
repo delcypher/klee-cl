@@ -115,6 +115,14 @@ StackTrace Thread::getStackTrace() const {
   return result;
 }
 
+void Thread::setSymbolicThreadID(ref<Expr> symbolicID)
+{
+    assert( (this->symbolicThreadID.isNull()) &&
+            "Cannot set symbolic ID again");
+
+    this->symbolicThreadID = symbolicID;
+}
+
 void Thread::dumpStackTrace() const {
  getStackTrace().dump(std::cerr);
 }

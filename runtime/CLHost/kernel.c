@@ -141,6 +141,10 @@ static void *work_item_thread(void *arg) {
     memcpy40(prog->ids, params->ids, sizeof(size_t)*params->work_dim);
   }
 
+  klee_assert( klee_is_symbolic(*(params->ids)) );
+
+  klee_set_work_item_id(params->ids, sizeof(size_t), params->work_dim);
+
   klee_set_work_group_id(params->wgid);
   if (prog->wgBarrierWlist)
     *prog->wgBarrierWlist = wg_wlist;
@@ -167,7 +171,11 @@ static int invoke_work_item(cl_kernel kern, uintptr_t args, cl_uint work_dim,
   params->wg_wlist = wg_wlist;
   params->global_wlist = global_wlist;
   params->global_size = global_size;
+
+  klee_assert( klee_is_symbolic(*ids));
   memcpy(params->ids, ids, sizeof(size_t)*work_dim);
+  klee_assert( klee_is_symbolic(*(params->ids)));
+
 
   return pthread_create(pt, NULL, work_item_thread, params);
 }
@@ -400,6 +408,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
 
     /* Hack symbolic thread IDs */
     klee_make_symbolic(ids, sizeof(size_t)*work_dim, threadString);
+    klee_assert( klee_is_symbolic(*ids) );
 
     invoke_work_item(kernel,
                      argList,

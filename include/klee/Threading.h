@@ -88,6 +88,8 @@ private:
   wlist_id_t waitingList;
 
   thread_uid_t tuid;
+
+  ref<Expr> symbolicThreadID;
 public:
   Thread(thread_id_t tid, process_id_t pid, KFunction *start_function,
          unsigned moduleId);
@@ -96,6 +98,7 @@ public:
   process_id_t getPid() const { return tuid.second; }
   unsigned getWorkgroupId() const { return workgroupId; }
   void setWorkgroupId(unsigned wgid) { workgroupId = wgid; }
+  void setSymbolicThreadID(ref<Expr> symbolicID);
 
   StackTrace getStackTrace() const;
   void dumpStackTrace() const;

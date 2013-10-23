@@ -157,6 +157,7 @@ namespace klee {
     HANDLER(handleCos);
     HANDLER(handleSin);
     HANDLER(handleFPToSIRound);
+    HANDLER(handleSetWorkItemID);
 #undef HANDLER
   };
 } // End klee namespace
