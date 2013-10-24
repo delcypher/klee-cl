@@ -30,6 +30,7 @@
 #include "klee/Internal/Module/KInstruction.h"
 #include "klee/Internal/Module/KModule.h"
 #include "klee/Internal/Support/ModuleUtil.h"
+#include "klee/KleeDebug.h"
 
 #include "klee/util/ExprCPrinter.h"
 
@@ -56,7 +57,6 @@
 #include "llvm/Support/Path.h"
 #endif
 #include "llvm/Support/raw_os_ostream.h"
-#include "llvm/Support/Debug.h"
 
 #ifdef HAVE_OPENCL
 #include "clang/Basic/Version.h"
@@ -1669,11 +1669,10 @@ void SpecialFunctionHandler::handleSetWorkItemID(ExecutionState &state,
     assert( num_dim > 0 && "Cannot have negative number of dimensions");
     assert(num_dim < 64 && "Cannot support that many dimensions");
 
-    // FIXME: Use dbgs() with ref<Expr>
-    std::cerr << "threadid pointer:" << threadIdPtr << "\n";
-    std::cerr << "Size:" << dataSize << "\n";
+    KLEE_DEBUG( dbgs() << "threadid pointer:" << threadIdPtr << "\n" );
+    KLEE_DEBUG( dbgs() << "Size:" << dataSize << "\n" );
 
-    std::cerr  << "Number of Dimensions: " << num_dim << "\n";
+    KLEE_DEBUG( dbgs() << "Number of Dimensions: " << num_dim << "\n");
 
     //executor.resolveExact(state, threadIdPtr, rl, "work-item-ids-pointer");
 
@@ -1697,15 +1696,15 @@ void SpecialFunctionHandler::handleSetWorkItemID(ExecutionState &state,
     if ( givenAddr > reqAddr)
         assert(false && "Invalid MO");
 
-    dbgs() << "Have object:" << MO->name << "\n";
-    dbgs() << "With size:" << OS->size << "\n";
+    KLEE_DEBUG( dbgs() << "Have object:" << MO->name << "\n" );
+    KLEE_DEBUG( dbgs() << "With size:" << OS->size << "\n");
 
     uint64_t offset = reqAddr - givenAddr;
     ref<Expr> ids;
-    dbgs() << "Reading offset:" << offset << "\n";
+    KLEE_DEBUG( dbgs() << "Reading offset:" << offset << "\n");
     ids = OS->read(offset, dataSize*num_dim, &state, executor.solver);
 
-    std::cerr << "Found :" << ids << "\n";
+    KLEE_DEBUG( dbgs() << "Found :" << ids << "\n");
     assert( !isa<ConstantExpr>(ids) && "Error: Found non symbolic.");
 
     // Save the symbolic threadID
