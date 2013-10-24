@@ -11,6 +11,7 @@
 #define KLEE_REF_H
 
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
 using llvm::isa;
 using llvm::cast;
 using llvm::cast_or_null;
@@ -109,6 +110,12 @@ public:
 
 template<class T>
 inline std::ostream &operator<<(std::ostream &os, const ref<T> &e) {
+  os << *e;
+  return os;
+}
+
+template<class T>
+inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const ref<T> &e) {
   os << *e;
   return os;
 }
