@@ -385,7 +385,7 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
     memcpy(kernel->program->numGroups, num_groups, work_dim*sizeof(size_t));
   }
 
-  char threadString[] = "threadX"; // Hacky way of setting a symbolic value's name.
+  char threadString[] = "symbolic_threadX"; // Hacky way of setting a symbolic value's name.
   size_t threadNum=0;
   do {
     /* Build up a one-dimensional work-group id for the work item.
@@ -409,6 +409,27 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue,
     /* Hack symbolic thread IDs */
     klee_make_symbolic(ids, sizeof(size_t)*work_dim, threadString);
     klee_assert( klee_is_symbolic(*ids) );
+
+    /* Constrain symbolic thread IDs */
+    unsigned int dim=0;
+    for (; dim < work_dim; ++dim )
+    {
+        // work item ids should be in a sensible range
+        klee_assume( ids[dim] < global_work_size[dim] );
+        klee_assume( ids[dim] >= 0); // Is this needed?
+
+        // Make sure previously created symbolic threads are distinct from the one
+        // we are going to create.
+        // Is the multi-dimensional restriction correct???
+        signed int prevThread = threadNum;
+        prevThread--;
+        while (prevThread >= 0)
+        {
+            klee_assume( symbolicIDs[prevThread][dim] < ids[dim] );
+            prevThread--;
+        }
+
+    }
 
     invoke_work_item(kernel,
                      argList,

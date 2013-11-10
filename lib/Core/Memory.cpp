@@ -17,6 +17,7 @@
 #include "klee/Expr.h"
 #include "klee/Solver.h"
 #include "klee/util/BitArray.h"
+#include "klee/KleeDebug.h"
 
 #include "ObjectHolder.h"
 
@@ -229,6 +230,7 @@ bool MemoryLog::logRead(ExecutionState *state, TimingSolver *solver, ref<Expr> o
                                     AndExpr::create(threadIdMismatch, wgidMismatch) // BUG: probably should be OR
                                    );
 
+  KLEE_DEBUG( dbgs() << "Log Read Query: **START**\n" << query << "\n**END**\n");
   bool result;
   bool success = solver->mayBeTrue(*state, query, result);
   assert(success && "FIXME: Unhandled solver failure");
